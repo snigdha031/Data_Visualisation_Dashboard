@@ -438,6 +438,119 @@ function createParallelCoordinates(svgContainer, data, width, height) {
         .text(d => d);
 }
 
+function createChart5() {
+    const svg = chart3;
+    const data = dashboardData;
+
+    const variables = [
+        'age',
+        'study_hours_per_day',
+        'social_media_hours',
+        'netflix_hours',
+        'attendance_percentage',
+        'sleep_hours',
+        'exercise_frequency',
+        'mental_health_rating',
+        'exam_score'
+      ];
+      
+    const matrix = [];
+
+    // Compute correlation coefficients
+    for (let i = 0; i < variables.length; i++) {
+        for (let j = 0; j < variables.length; j++) {
+            const x = data.map(d => +d[variables[i]]);
+            const y = data.map(d => +d[variables[j]]);
+            const corr = d3.corr(x, y);
+            if (!isNaN(corr)) {
+                matrix.push({ x: variables[i], y: variables[j], value: corr });
+            }
+        }
+    }
+
+    const cellSize = 40;
+    const margin = { top: 180, right: 100, bottom: 50, left: 180 }; 
+        const width = cellSize * variables.length + margin.left + margin.right;
+        const height = cellSize * variables.length + margin.top + margin.bottom;
+    
+
+    const x = d3.scaleBand()
+        .domain(variables)
+        .range([margin.left, width - margin.right])
+        .padding(0.05);
+
+    const y = d3.scaleBand()
+        .domain(variables)
+        .range([margin.top, height - margin.bottom])
+        .padding(0.05);
+
+    // FIXED DOMAIN HERE
+    const color = d3.scaleSequential()
+        .interpolator(d3.interpolateRdBu)
+        .domain([-1, 1]); // min to max, NOT reversed
+
+    svg.attr("width", width).attr("height", height);
+
+    // Axes
+    svg.append("g")
+    .attr("transform", `translate(0,${margin.top})`)
+    .call(d3.axisTop(x))
+    .selectAll("text")
+    .attr("transform", "translate(-10, -10) rotate(-45)")
+    .style("text-anchor", "end");
+
+
+    svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y));
+
+    // Heatmap cells
+    svg.selectAll("rect")
+        .data(matrix)
+        .enter()
+        .append("rect")
+        .attr("x", d => x(d.x))
+        .attr("y", d => y(d.y))
+        .attr("width", x.bandwidth())
+        .attr("height", y.bandwidth())
+        .style("fill", d => color(d.value))
+        .style("stroke", "#fff")
+        .style("stroke-width", 0.5);
+
+    // Text in each cell
+    svg.selectAll("text.cell")
+        .data(matrix)
+        .enter()
+        .append("text")
+        .attr("class", "cell")
+        .attr("x", d => x(d.x) + x.bandwidth() / 2)
+        .attr("y", d => y(d.y) + y.bandwidth() / 2)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .style("fill", d => Math.abs(d.value) > 0.5 ? "white" : "black")
+        .style("font-size", "11px")
+        .text(d => d.value.toFixed(2));
+
+    // Title
+        svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", margin.top / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .text("Correlation Heatmap"); 
+    
+
+}
+
+d3.corr = function(x, y) {
+    const n = x.length;
+    const meanX = d3.mean(x);
+    const meanY = d3.mean(y);
+    const cov = d3.sum(x.map((xi, i) => (xi - meanX) * (y[i] - meanY))) / n;
+    const stdX = d3.deviation(x);
+    const stdY = d3.deviation(y);
+    return cov / (stdX * stdY);
+};
 
 // clear files if changes (dataset) occur
 function clearDashboard() {
