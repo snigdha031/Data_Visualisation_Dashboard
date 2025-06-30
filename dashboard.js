@@ -57,44 +57,53 @@ function createChart1() {
     const svg = chart1;
     const data = dashboardData;
 
+    // Group and compute average exam score per mental health rating
     const groupedData = Array.from(
         d3.rollup(data, v => d3.mean(v, d => d.exam_score), d => +d.mental_health_rating),
         ([rating, avgScore]) => ({ rating: rating.toString(), avgScore })
     ).sort((a, b) => d3.ascending(+a.rating, +b.rating));
 
-    const margin = { top: 30, right: 30, bottom: 40, left: 50 };
-    const width = 400;
-    const height = 300;
+    // Use same dimensions as histogram for consistency
+    const margin = { top: 30, right: 30, bottom: 50, left: 100 };
+    const width = 500;
+    const height = 400;
 
-    const x = d3.scaleBand()
-        .domain(groupedData.map(d => d.rating))
-        .range([margin.left, width - margin.right])
-        .padding(0.2);
-
-    const y = d3.scaleLinear()
+    // X = avg exam score (numeric)
+    const x = d3.scaleLinear()
         .domain([0, d3.max(groupedData, d => d.avgScore)])
         .nice()
-        .range([height - margin.bottom, margin.top]);
+        .range([margin.left, width - margin.right]);
+
+    // Y = mental health rating (ordinal)
+    const y = d3.scaleBand()
+        .domain(groupedData.map(d => d.rating))
+        .range([margin.top, height - margin.bottom])
+        .padding(0.2);
+
+    // Update chart1 dimensions
+    d3.select("#chart1 svg")
+        .attr("width", width)
+        .attr("height", height);
 
     // Axes
     svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x).tickFormat(d => `Rating ${d}`));
+        .call(d3.axisBottom(x));
 
     svg.append("g")
         .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y).tickFormat(d => `Rating ${d}`));
 
-    // Bars
+    // Bars (horizontal)
     svg.selectAll(".bar")
         .data(groupedData)
         .enter()
         .append("rect")
         .attr("class", "bar")
-        .attr("x", d => x(d.rating))
-        .attr("y", d => y(d.avgScore))
-        .attr("width", x.bandwidth())
-        .attr("height", d => y(0) - y(d.avgScore))
+        .attr("y", d => y(d.rating))
+        .attr("x", margin.left)
+        .attr("width", d => x(d.avgScore) - margin.left)
+        .attr("height", y.bandwidth())
         .attr("fill", "#4caf50");
 
     // Labels
@@ -102,12 +111,30 @@ function createChart1() {
         .data(groupedData)
         .enter()
         .append("text")
-        .attr("x", d => x(d.rating) + x.bandwidth() / 2)
-        .attr("y", d => y(d.avgScore) - 5)
-        .attr("text-anchor", "middle")
+        .attr("x", d => x(d.avgScore) + 5)
+        .attr("y", d => y(d.rating) + y.bandwidth() / 2 + 4)
         .style("font-size", "11px")
         .text(d => d.avgScore.toFixed(1));
+    
+    // X-axis label
+        svg.append("text")
+        .attr("x", (width + margin.left - margin.right) / 2)
+        .attr("y", height - 5)
+        .attr("text-anchor", "middle")
+        .style("font-size", "12px")
+        .text("Exam Score");
+
+    // Y-axis label
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", - (margin.top + (height - margin.top - margin.bottom) / 2))
+        .attr("y", 15)
+        .attr("text-anchor", "middle")
+        .style("font-size", "12px")
+        .text("Mental Health Rating");
+
 }
+
 
 function createChart2(){
     createHistogram(chart2, dashboardData, d => +d.exam_score, width, height);
