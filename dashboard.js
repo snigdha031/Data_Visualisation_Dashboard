@@ -201,8 +201,94 @@ function createChart3(){
 
 }
 
-function createChart4(){
+function createChart4() {
+    createParallelCoordinates(chart4, dashboardData, width, height);
+}
 
+function createParallelCoordinates(svgContainer, data, width, height) {
+    const margin = { top: 60, right: 30, bottom: 50, left: 50 },
+          innerWidth = width - margin.left - margin.right,
+          innerHeight = height - margin.top - margin.bottom;
+
+    // Clear previous content
+    svgContainer.selectAll("*").remove();
+
+    // Setup SVG group with margins
+    const svg = svgContainer
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Extract numeric keys (dimensions) from data - exclude non-numeric or categorical if you want
+    const dimensions = Object.keys(data[0]).filter(key => {
+        return typeof data[0][key] === 'number' || !isNaN(+data[0][key]);
+    });
+
+    // Create a scale for each dimension
+    const y = {};
+    for (const dim of dimensions) {
+        y[dim] = d3.scaleLinear()
+            .domain(d3.extent(data, d => +d[dim]))
+            .range([innerHeight, 0]);
+    }
+
+    // X scale for positioning each axis
+    const x = d3.scalePoint()
+        .range([0, innerWidth])
+        .padding(0.5)
+        .domain(dimensions);
+
+    // Line generator for each data item
+    function path(d) {
+        return d3.line()(dimensions.map(dim => [x(dim), y[dim](d[dim])]));
+    }
+
+    // Draw background lines (optional, light grey)
+    svg.append("g")
+        .attr("class", "background")
+        .selectAll("path")
+        .data(data)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr("fill", "none")
+        .attr("stroke", "#ddd")
+        .attr("stroke-width", 1);
+
+    // Draw foreground lines (main lines)
+    svg.append("g")
+        .attr("class", "foreground")
+        .selectAll("path")
+        .data(data)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr("fill", "none")
+        .attr("stroke", "#40E0D0")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-opacity", 0.7);
+
+    // Draw axes and labels
+    const axis = d3.axisLeft();
+
+    const g = svg.selectAll(".dimension")
+        .data(dimensions)
+        .enter()
+        .append("g")
+        .attr("class", "dimension")
+        .attr("transform", d => `translate(${x(d)},0)`);
+
+    g.append("g")
+        .each(function(d) {
+            d3.select(this).call(axis.scale(y[d]));
+        });
+
+    g.append("text")
+        .attr("y", -20)               // move further up
+        .attr("x", 0)                 // center of axis
+        .attr("text-anchor", "start") // align left after rotation
+        .attr("transform", "rotate(-45)")  // rotate for better fit
+        .style("font-size", "12px")
+        .style("fill", "black")
+        .text(d => d);
 }
 
 // clear files if changes (dataset) occur
