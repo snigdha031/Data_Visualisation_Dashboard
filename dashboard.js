@@ -197,9 +197,144 @@ function createHistogram(svgContainer, data, valueAccessor, width, height) {
 }
 
 
-function createChart3(){
+function createChart3() {
+    // First bucket study_hours_per_day into categories
+    const bucketedData = dashboardData.map(d => {
+        let bucket;
+        const val = +d.study_hours_per_day;
+        if (val < 1) bucket = "Less than 1 hour";
+        else if (val < 3) bucket = "1-3 hours";
+        else if (val < 5) bucket = "3-5 hours";
+        else bucket = "More than 5 hours";
+        return {...d, study_hours_bucket: bucket};
+    });
 
+    createInteractivePieChart(chart3, bucketedData, width, height, "study_hours_bucket");
 }
+
+function createInteractivePieChart(svgContainer, data, width, height, categoryKey) {
+    const margin = { top: 40, right: 40, bottom: 40, left: 40 },
+          innerWidth = width - margin.left - margin.right,
+          innerHeight = height - margin.top - margin.bottom,
+          radius = Math.min(innerWidth, innerHeight) / 2;
+
+    svgContainer.selectAll("*").remove();
+
+    svgContainer
+        .attr("width", width)
+        .attr("height", height);
+
+// add the title at top center
+    svgContainer.append("text")
+        .attr("class", "chart-title")
+        .attr("x", width / 2)
+        .attr("y", margin.top / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("font-weight", "bold")
+    .   text("Distribution of Students by Study Hours Per Day");
+
+// then create the group for pie chart inside margins
+    const svg = svgContainer
+        .append("g")
+        .attr("transform", `translate(${margin.left + innerWidth / 2},${margin.top + innerHeight / 2})`);
+
+
+    // Aggregate counts by category
+    const aggregatedData = d3.rollup(
+        data,
+        v => v.length,
+        d => d[categoryKey]
+    );
+
+    const pie = d3.pie()
+        .value(d => d[1])
+        .sort(null);
+
+    const arcs = pie(Array.from(aggregatedData));
+
+    const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+
+    const arcHover = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius + 10); // expand radius on hover
+
+    // Color scale
+    const color = d3.scaleOrdinal()
+        .domain(Array.from(aggregatedData.keys()))
+        .range(d3.schemeSet2);
+
+    // Tooltip div (append to body if not exists)
+    let tooltip = d3.select("body").select(".pie-tooltip");
+    if (tooltip.empty()) {
+        tooltip = d3.select("body")
+            .append("div")
+            .attr("class", "pie-tooltip")
+            .style("position", "absolute")
+            .style("background", "rgba(0,0,0,0.7)")
+            .style("color", "white")
+            .style("padding", "6px 10px")
+            .style("border-radius", "4px")
+            .style("pointer-events", "none")
+            .style("font-size", "12px")
+            .style("opacity", 0);
+    }
+
+    // Draw slices
+    svg.selectAll("path")
+        .data(arcs)
+        .enter()
+        .append("path")
+        .attr("d", arc)
+        .attr("fill", d => color(d.data[0]))
+        .attr("stroke", "white")
+        .style("stroke-width", "2px")
+        .on("mouseover", function(event, d) {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("d", arcHover)
+                .style("cursor", "pointer");
+
+            tooltip
+                .style("opacity", 1)
+                .html(
+                    `<strong>${d.data[0]}</strong><br/>Count: ${d.data[1]}<br/>` +
+                    `Percentage: ${(d.data[1] / data.length * 100).toFixed(1)}%`
+                );
+        })
+        .on("mousemove", function(event) {
+            tooltip
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", function() {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("d", arc);
+
+            tooltip.style("opacity", 0);
+        });
+
+    // Add labels with percentage, only if slice big enough
+    svg.selectAll("text")
+        .data(arcs)
+        .enter()
+        .append("text")
+        .attr("transform", d => `translate(${arc.centroid(d)})`)
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .style("font-size", "11px")
+        .style("fill", "#333")
+        .text(d => {
+            const percent = (d.data[1] / data.length) * 100;
+            return percent > 5 ? `${d.data[0]} (${percent.toFixed(1)}%)` : "";
+        });
+}
+
 
 function createChart4() {
     createParallelCoordinates(chart4, dashboardData, width, height);
