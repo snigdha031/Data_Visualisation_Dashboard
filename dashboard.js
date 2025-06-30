@@ -110,8 +110,65 @@ function createChart1() {
 }
 
 function createChart2(){
-
+    createHistogram(chart2, dashboardData, d => +d.exam_score, width, height);
 }
+function createHistogram(svgContainer, data, valueAccessor, width, height) {
+    const margin = { top: 30, right: 30, bottom: 50, left: 50 },
+          innerWidth = width - margin.left - margin.right,
+          innerHeight = height - margin.top - margin.bottom;
+
+    const svg = svgContainer
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const values = data.map(valueAccessor);
+
+    const x = d3.scaleLinear()
+        .domain(d3.extent(values))
+        .nice()
+        .range([0, innerWidth]);
+
+    const bins = d3.bin().domain(x.domain()).thresholds(20)(values);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(bins, d => d.length)])
+        .nice()
+        .range([innerHeight, 0]);
+
+    // X Axis
+    svg.append("g")
+        .attr("transform", `translate(0,${innerHeight})`)
+        .call(d3.axisBottom(x));
+
+    // Y Axis
+    svg.append("g")
+        .call(d3.axisLeft(y));
+
+    // Bars
+    svg.selectAll("rect")
+        .data(bins)
+        .enter()
+        .append("rect")
+        .attr("x", d => x(d.x0))
+        .attr("y", d => y(d.length))
+        .attr("width", d => x(d.x1) - x(d.x0) - 1)
+        .attr("height", d => innerHeight - y(d.length))
+        .style("fill", "orange");
+
+    // Axis labels
+    svg.append("text")
+        .attr("x", innerWidth / 2)
+        .attr("y", innerHeight + margin.bottom - 5)
+        .attr("text-anchor", "middle")
+        .text("Exam Score");
+
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -innerHeight / 2)
+        .attr("y", -margin.left + 15)
+        .attr("text-anchor", "middle")
+        .text("Number of Students");
+}
+
 
 function createChart3(){
 
