@@ -53,22 +53,21 @@ function initDashboard(_data) {
     createChart3();
     createChart4();
 }
-
 function createChart1() {
     const svg = chart1;
-    const data = dashboardData; // assumes global variable set when initDashboard is called
+    const data = dashboardData;
 
     const groupedData = Array.from(
-        d3.rollup(data, v => d3.mean(v, d => d.exam_score), d => d.part_time_job),
-        ([jobStatus, avgScore]) => ({ jobStatus, avgScore })
-    );
+        d3.rollup(data, v => d3.mean(v, d => d.exam_score), d => +d.mental_health_rating),
+        ([rating, avgScore]) => ({ rating: rating.toString(), avgScore })
+    ).sort((a, b) => d3.ascending(+a.rating, +b.rating));
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+    const margin = { top: 30, right: 30, bottom: 40, left: 50 };
     const width = 400;
     const height = 300;
 
     const x = d3.scaleBand()
-        .domain(groupedData.map(d => d.jobStatus))
+        .domain(groupedData.map(d => d.rating))
         .range([margin.left, width - margin.right])
         .padding(0.2);
 
@@ -80,7 +79,7 @@ function createChart1() {
     // Axes
     svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).tickFormat(d => `Rating ${d}`));
 
     svg.append("g")
         .attr("transform", `translate(${margin.left},0)`)
@@ -92,26 +91,22 @@ function createChart1() {
         .enter()
         .append("rect")
         .attr("class", "bar")
-        .attr("x", d => x(d.jobStatus))
+        .attr("x", d => x(d.rating))
         .attr("y", d => y(d.avgScore))
         .attr("width", x.bandwidth())
         .attr("height", d => y(0) - y(d.avgScore))
-        .attr("fill", "#4682b4");
+        .attr("fill", "#4caf50");
 
     // Labels
     svg.selectAll(".label")
         .data(groupedData)
         .enter()
         .append("text")
-        .attr("x", d => x(d.jobStatus) + x.bandwidth() / 2)
+        .attr("x", d => x(d.rating) + x.bandwidth() / 2)
         .attr("y", d => y(d.avgScore) - 5)
         .attr("text-anchor", "middle")
         .style("font-size", "11px")
         .text(d => d.avgScore.toFixed(1));
-}
-
-    
-
 }
 
 function createChart2(){
