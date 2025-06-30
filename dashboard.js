@@ -14,6 +14,7 @@
 
 // TODO: use descriptive names for variables
 let chart1, chart2, chart3, chart4;
+let dashboardData = []
 
 function initDashboard(_data) {
 
