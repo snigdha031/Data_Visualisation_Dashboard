@@ -53,7 +53,62 @@ function initDashboard(_data) {
     createChart4();
 }
 
-function createChart1(){
+function createChart1() {
+    const svg = chart1;
+    const data = dashboardData; // assumes global variable set when initDashboard is called
+
+    const groupedData = Array.from(
+        d3.rollup(data, v => d3.mean(v, d => d.exam_score), d => d.part_time_job),
+        ([jobStatus, avgScore]) => ({ jobStatus, avgScore })
+    );
+
+    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+    const width = 400;
+    const height = 300;
+
+    const x = d3.scaleBand()
+        .domain(groupedData.map(d => d.jobStatus))
+        .range([margin.left, width - margin.right])
+        .padding(0.2);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(groupedData, d => d.avgScore)])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+
+    // Axes
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x));
+
+    svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y));
+
+    // Bars
+    svg.selectAll(".bar")
+        .data(groupedData)
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => x(d.jobStatus))
+        .attr("y", d => y(d.avgScore))
+        .attr("width", x.bandwidth())
+        .attr("height", d => y(0) - y(d.avgScore))
+        .attr("fill", "#4682b4");
+
+    // Labels
+    svg.selectAll(".label")
+        .data(groupedData)
+        .enter()
+        .append("text")
+        .attr("x", d => x(d.jobStatus) + x.bandwidth() / 2)
+        .attr("y", d => y(d.avgScore) - 5)
+        .attr("text-anchor", "middle")
+        .style("font-size", "11px")
+        .text(d => d.avgScore.toFixed(1));
+}
+
     
 
 }
