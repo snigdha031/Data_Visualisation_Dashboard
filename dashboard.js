@@ -18,6 +18,7 @@ let chart1, chart2, chart3, chart4;
 function initDashboard(_data) {
 
     // TODO: Initialize the environment (SVG, etc.) and call the nedded methods
+    dashboardData = _data; // store data for use in all createChart functions
 
     //  SVG container
     chart1 = d3.select("#chart1").append("svg")
@@ -53,6 +54,7 @@ function initDashboard(_data) {
 }
 
 function createChart1(){
+    
 
 }
 
