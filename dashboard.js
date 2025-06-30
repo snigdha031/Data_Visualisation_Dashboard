@@ -439,7 +439,7 @@ function createParallelCoordinates(svgContainer, data, width, height) {
 }
 
 function createChart5() {
-    const svg = chart3;
+    const svg = chart5;
     const data = dashboardData;
 
     const variables = [
