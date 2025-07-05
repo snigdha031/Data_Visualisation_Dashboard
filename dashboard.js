@@ -559,4 +559,5 @@ function clearDashboard() {
     chart2.selectAll("*").remove();
     chart3.selectAll("*").remove();
     chart4.selectAll("*").remove();
+    chart5.selectAll("*").remove();
 }
